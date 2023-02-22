@@ -1,0 +1,6 @@
+---
+
+amazon_owner: "apache"
+amazon_group: "apache"
+amazon_port: "8080"
+amazon_domain: "wp-amazon.haashdev.tech"
