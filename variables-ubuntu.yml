@@ -1,0 +1,5 @@
+---
+ubuntu_port: "8080"
+ubuntu_group: "www-data"
+ubuntu_owner: "www-data"
+ubuntu_domain: "wp-ubuntu.haashdev.tech"
