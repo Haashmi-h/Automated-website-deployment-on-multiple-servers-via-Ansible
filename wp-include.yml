@@ -1,0 +1,26 @@
+- name: "Playbook - Wordpress installation on AmazonLinux and Ubuntu"
+  hosts: amazon,ubuntu
+  become: yes
+  vars:
+    mariadb_root_pass: "root123"
+    db_user: "wpuser"
+    db_name: "wp_db"
+    wp_url: "https://wordpress.org/latest.tar.gz"
+
+  vars_prompt:
+    - name: db_password
+      prompt: "Enter the password for the database user"
+      private: yes
+      encrypt: sha512_crypt
+      confirm: yes
+
+  vars_files:
+    - variables-ubuntu.yml
+    - variables-amazon.yml
+  tasks:
+    - include_tasks: wp-amazon.yml
+      when: ansible_distribution == "Amazon" and ansible_os_family == "RedHat"
+
+    - include_tasks: wp-ubuntu.yml
+      when: ansible_distribution == "Ubuntu" and ansible_os_family == "Debian"
+
