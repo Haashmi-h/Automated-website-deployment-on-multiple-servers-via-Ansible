@@ -1,0 +1,163 @@
+---
+- name: "Installing Nginx"
+  apt:
+    update_cache: true
+    name:
+      - nginx
+      - php
+      - php-fpm
+      - php-cgi
+      - php-mysql
+    state: present
+  tags:
+    - lamp
+
+
+- name: "nginx configuration from local templat"
+  template:
+    src: "./nginx.conf.j2"
+    dest: "/etc/nginx/sites-available/{{ubuntu_domain}}"
+  register: nginx_status
+  tags:
+    - lamp
+
+- name: "Creating Documentroot for /var/www/html/{{ ubuntu_domain }}"
+  file:
+    path: "/var/www/html/{{ ubuntu_domain }}"
+    state: directory
+    owner: "{{ ubuntu_owner }}"
+    group: "{{ ubuntu_group }}"
+  tags:
+    - lamp
+
+- name: "Creating Sample test.html and test.php page under  /var/www/html/{{ ubuntu_domain }}"
+  copy:
+    src: "{{ item }}"
+    dest: "/var/www/html/{{ ubuntu_domain }}/"
+    owner: "{{ ubuntu_owner }}"
+    group: "{{ ubuntu_group }}"
+  with_items:
+    - test.html
+    - test.php
+  tags:
+    - lamp
+
+- name: "Enabling symlink from  sites-available to sites-enabled"
+  file:
+    src: "/etc/nginx/sites-available/{{ubuntu_domain}}"
+    dest: "/etc/nginx/sites-enabled/{{ubuntu_domain}}"
+    state: link
+
+- name: "Installing Mariadb"
+  apt:
+    update_cache: true
+    name:
+      - mariadb-server
+      - python3-pymysql
+    state: present
+  tags:
+    - lamp
+    - mariadb
+
+
+- name: "MariaDB -updating root password"
+  ignore_errors: true
+  mysql_user:
+    name: "root"
+    password: "{{ mariadb_root_pass }}"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    state: present
+    host_all: true
+  tags:
+    - lamp
+    - mariadb
+
+- name: "Remove anonymous Users"
+  mysql_user:
+    login_user: "root"
+    login_password: "{{ mariadb_root_pass }}"
+    name: ""
+    password: ""
+    host_all: true
+    state: absent
+  tags:
+    - lamp
+    - mariadb
+
+- name: "Create a new database for wordpress "
+  mysql_db:
+    login_user: "root"
+    login_password: "{{ mariadb_root_pass }}"
+    name: "{{ db_name }}"
+    state: present
+  tags:
+    - lamp
+    - mariadb
+
+- name: "Create a new database user"
+  mysql_user:
+    login_user: "root"
+    login_password: "{{ mariadb_root_pass }}"
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    state: present
+    host: "%"
+    priv: "{{ db_name }}.*:ALL"
+  tags:
+    - lamp
+    - mariadb
+
+- name: " Wordpress - Downloading the Wordpress installation file "
+  get_url:
+    url: "{{ wp_url }}"
+    dest: "/tmp/wordpress.tar.gz"
+  tags:
+    - wordpress
+
+- name: " Wordpress - Extracting the installation file "
+  unarchive:
+    src: "/tmp/wordpress.tar.gz"
+    dest: "/tmp"
+    remote_src: true
+  tags:
+    - wordpress
+
+- name: "Wordpress - copying extracted wordpress contents from the downloaded installation file"
+  copy:
+    src: "/tmp/wordpress/"
+    dest: "/var/www/html/{{ ubuntu_domain }}"
+    remote_src: true
+    owner: "{{ ubuntu_owner }}"
+    group: "{{ ubuntu_group }}"
+  tags:
+    - wordpress
+
+- name: "Creating wp-config.php from wp-config.php.j2"
+  template:
+    src: "./wp-config.php.j2"
+    dest: "/var/www/html/{{ ubuntu_domain }}/wp-config.php"
+    owner: "{{ ubuntu_owner }}"
+    group: "{{ ubuntu_group }}"
+  tags:
+    - wordpress
+
+- name: "Post Installation - Restart"
+  service:
+    name: "{{ item }}"
+    state: restarted
+    enabled: true
+  with_items:
+    - nginx
+    - mariadb
+  tags:
+    - wordpress
+
+- name: "Post Installation - Cleanup"
+  file:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - "/tmp/wordpress"
+    - "/tmp/wordpress.tar.gz"
+  tags:
+    - wordpress
