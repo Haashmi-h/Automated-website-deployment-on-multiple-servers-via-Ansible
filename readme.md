@@ -6,7 +6,7 @@
 
 
 </br>
-Here, we are configuring **LAMP** and **LEMP** to deploy websites with "Conditionals based on ansible_facts" feature on Ansible. </br>
+Here, we are configuring LAMP and LEMP to deploy websites with "Conditionals based on ansible_facts" feature on Ansible. </br>
 This task requires mainly 4 YAML/YML files:
 
 </br>
